@@ -81,11 +81,12 @@ app.use('*', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📱 Sampark Jyoti Backend API ready!`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔗 Network access: http://10.45.229.208:${PORT}/health`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/`);
 });
 
