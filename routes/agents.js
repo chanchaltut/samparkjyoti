@@ -405,11 +405,145 @@ router.post('/create-labour', authenticateAgent, async (req, res) => {
   }
 });
 
-// Backward compatibility - keep the old route too
+// Create worker/labour profile (Enhanced version)
 router.post('/create-worker', authenticateAgent, async (req, res) => {
-  // Redirect to the new enhanced route
-  req.url = '/create-labour';
-  return router.handle(req, res);
+  try {
+    if (!req.agent.permissions.canCreateWorkers) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'You do not have permission to create worker profiles'
+      });
+    }
+
+    const {
+      name,
+      email,
+      phone,
+      location,
+      bio,
+      labourProfile
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !phone || !location) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Name, email, phone, and location are required'
+      });
+    }
+
+    // Validate labour profile required fields
+    if (labourProfile && (!labourProfile.minimumWage || !labourProfile.workRole || !labourProfile.speciality)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Minimum wage, work role, and speciality are required'
+      });
+    }
+
+    // Validate age if provided
+    if (labourProfile?.age && (labourProfile.age < 18 || labourProfile.age > 70)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Age must be between 18 and 70'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Worker with this email already exists'
+      });
+    }
+
+    // Generate a temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(tempPassword, salt);
+
+    // Create enhanced worker profile
+    const worker = new User({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      roles: ['labour'],
+      primaryRole: 'labour',
+      location,
+      languages: ['english'],
+      preferredLanguage: 'english',
+      bio,
+      labourProfile: {
+        age: labourProfile?.age || 25,
+        workExperience: labourProfile?.workExperience || 0,
+        workLocation: labourProfile?.workLocation || location,
+        minimumWage: labourProfile?.minimumWage || 500,
+        workRole: labourProfile?.workRole || 'other',
+        fieldOfWork: labourProfile?.fieldOfWork || [],
+        speciality: labourProfile?.speciality || 'General Work',
+        extraSkills: labourProfile?.extraSkills || [],
+        performanceRating: labourProfile?.performanceRating || 3,
+        skillLevel: labourProfile?.skillLevel || 'beginner',
+        availability: labourProfile?.availability || 'full_time',
+        workingHours: labourProfile?.workingHours || 'day_shift',
+        hasVehicle: labourProfile?.hasVehicle || false,
+        vehicleType: labourProfile?.vehicleType || 'none',
+        hasLicense: labourProfile?.hasLicense || false,
+        licenseType: labourProfile?.licenseType || 'none',
+        canLiftHeavyObjects: labourProfile?.canLiftHeavyObjects || false,
+        hasHealthIssues: labourProfile?.hasHealthIssues || false,
+        emergencyContact: labourProfile?.emergencyContact || {},
+        previousEmployers: []
+      },
+      isVerified: false,
+      isActive: true,
+      createdBy: req.agent._id
+    });
+
+    await worker.save();
+
+    // Update agent's worker creation count
+    req.agent.workersCreated += 1;
+    await req.agent.save();
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Worker profile created successfully',
+      data: {
+        worker: {
+          id: worker._id,
+          name: worker.name,
+          email: worker.email,
+          phone: worker.phone,
+          location: worker.location,
+          age: worker.labourProfile?.age || 25,
+          workRole: worker.labourProfile?.workRole || 'other',
+          speciality: worker.labourProfile?.speciality || 'General Work',
+          minimumWage: worker.labourProfile?.minimumWage || 500,
+          skillLevel: worker.labourProfile?.skillLevel || 'beginner',
+          performanceRating: worker.labourProfile?.performanceRating || 3,
+          workExperience: worker.labourProfile?.workExperience || 0,
+          fieldOfWork: worker.labourProfile?.fieldOfWork || [],
+          availability: worker.labourProfile?.availability || 'full_time',
+          hasVehicle: worker.labourProfile?.hasVehicle || false,
+          hasLicense: worker.labourProfile?.hasLicense || false,
+          canLiftHeavyObjects: worker.labourProfile?.canLiftHeavyObjects || false,
+          tempPassword,
+          createdBy: req.agent.name,
+          agentId: req.agent.agentId
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Create worker error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to create worker profile',
+      error: error.message
+    });
+  }
 });
 
 // Get workers created by agent
