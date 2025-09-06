@@ -259,8 +259,8 @@ router.get('/profile', authenticateAgent, async (req, res) => {
   }
 });
 
-// Create worker profile (Agent function)
-router.post('/create-worker', authenticateAgent, validateWorkerCreation, async (req, res) => {
+// Create enhanced labour profile (Agent function)
+router.post('/create-labour', authenticateAgent, async (req, res) => {
   try {
     if (!req.agent.permissions.canCreateWorkers) {
       return res.status(403).json({
@@ -274,18 +274,42 @@ router.post('/create-worker', authenticateAgent, validateWorkerCreation, async (
       email,
       phone,
       location,
-      languages,
-      preferredLanguage,
+      age,
+      workExperience,
+      minimumWage,
+      workRole,
+      fieldOfWork,
+      speciality,
+      extraSkills,
+      performanceRating,
+      skillLevel,
+      availability,
+      workingHours,
+      hasVehicle,
+      vehicleType,
+      hasLicense,
+      licenseType,
+      canLiftHeavyObjects,
+      hasHealthIssues,
+      emergencyContact,
       bio,
-      labourProfile,
-      documents
+      languages,
+      preferredLanguage
     } = req.body;
 
     // Validate required fields
-    if (!name || !email || !phone || !location) {
+    if (!name || !email || !phone || !location || !age || !minimumWage || !workRole || !speciality) {
       return res.status(400).json({
         status: 'error',
-        message: 'Name, email, phone, and location are required'
+        message: 'Name, email, phone, location, age, minimum wage, work role, and speciality are required'
+      });
+    }
+
+    // Validate age
+    if (age < 18 || age > 70) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Age must be between 18 and 70'
       });
     }
 
@@ -294,7 +318,7 @@ router.post('/create-worker', authenticateAgent, validateWorkerCreation, async (
     if (existingUser) {
       return res.status(400).json({
         status: 'error',
-        message: 'User with this email already exists'
+        message: 'Worker with this email already exists'
       });
     }
 
@@ -303,8 +327,8 @@ router.post('/create-worker', authenticateAgent, validateWorkerCreation, async (
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(tempPassword, salt);
 
-    // Create worker profile
-    const worker = new User({
+    // Create enhanced labour profile
+    const labour = new User({
       name,
       email,
       password: hashedPassword,
@@ -316,20 +340,33 @@ router.post('/create-worker', authenticateAgent, validateWorkerCreation, async (
       preferredLanguage: preferredLanguage || 'english',
       bio,
       labourProfile: {
-        workExperience: labourProfile?.workExperience || 0,
-        workLocation: labourProfile?.workLocation || location,
-        minimumWage: labourProfile?.minimumWage || 0,
-        fieldOfWork: labourProfile?.fieldOfWork || [],
-        extraSkills: labourProfile?.extraSkills || [],
-        availability: labourProfile?.availability || 'full_time'
+        age: parseInt(age),
+        workExperience: parseInt(workExperience) || 0,
+        workLocation: location,
+        minimumWage: parseInt(minimumWage),
+        workRole,
+        fieldOfWork: Array.isArray(fieldOfWork) ? fieldOfWork : [fieldOfWork].filter(Boolean),
+        speciality,
+        extraSkills: Array.isArray(extraSkills) ? extraSkills : (extraSkills ? extraSkills.split(',').map(s => s.trim()) : []),
+        performanceRating: parseFloat(performanceRating) || 3,
+        skillLevel: skillLevel || 'beginner',
+        availability: availability || 'full_time',
+        workingHours: workingHours || 'day_shift',
+        hasVehicle: hasVehicle === 'true' || hasVehicle === true,
+        vehicleType: vehicleType || 'none',
+        hasLicense: hasLicense === 'true' || hasLicense === true,
+        licenseType: licenseType || 'none',
+        canLiftHeavyObjects: canLiftHeavyObjects === 'true' || canLiftHeavyObjects === true,
+        hasHealthIssues: hasHealthIssues === 'true' || hasHealthIssues === true,
+        emergencyContact: emergencyContact || {},
+        previousEmployers: []
       },
-      documents: documents || [],
       isVerified: false,
       isActive: true,
       createdBy: req.agent._id
     });
 
-    await worker.save();
+    await labour.save();
 
     // Update agent's worker creation count
     req.agent.workersCreated += 1;
@@ -337,28 +374,42 @@ router.post('/create-worker', authenticateAgent, validateWorkerCreation, async (
 
     res.status(201).json({
       status: 'success',
-      message: 'Worker profile created successfully',
+      message: 'Labour profile created successfully',
       data: {
-        worker: {
-          id: worker._id,
-          name: worker.name,
-          email: worker.email,
-          phone: worker.phone,
-          location: worker.location,
+        labour: {
+          id: labour._id,
+          name: labour.name,
+          email: labour.email,
+          phone: labour.phone,
+          location: labour.location,
+          age: labour.labourProfile.age,
+          workRole: labour.labourProfile.workRole,
+          speciality: labour.labourProfile.speciality,
+          minimumWage: labour.labourProfile.minimumWage,
+          skillLevel: labour.labourProfile.skillLevel,
+          performanceRating: labour.labourProfile.performanceRating,
           tempPassword,
-          createdBy: req.agent.name
+          createdBy: req.agent.name,
+          agentId: req.agent.agentId
         }
       }
     });
 
   } catch (error) {
-    console.error('Create worker error:', error);
+    console.error('Create labour error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Failed to create worker profile',
+      message: 'Failed to create labour profile',
       error: error.message
     });
   }
+});
+
+// Backward compatibility - keep the old route too
+router.post('/create-worker', authenticateAgent, async (req, res) => {
+  // Redirect to the new enhanced route
+  req.url = '/create-labour';
+  return router.handle(req, res);
 });
 
 // Get workers created by agent

@@ -107,6 +107,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/agents', require('./routes/agents'));
 app.use('/api/market-prices', require('./routes/marketPrices'));
 app.use('/api/single-admin', require('./routes/singleAdmin'));
+app.use('/api/labour', require('./routes/labourSelfRegistration'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

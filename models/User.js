@@ -55,8 +55,15 @@ const userSchema = new mongoose.Schema({
   },
   
   // Role-specific fields
-  // Labour fields
+  // Enhanced Labour fields
   labourProfile: {
+    // Basic Information
+    age: {
+      type: Number,
+      min: [18, 'Age must be at least 18'],
+      max: [70, 'Age cannot exceed 70'],
+      required: [true, 'Age is required for labour profile']
+    },
     workExperience: {
       type: Number,
       min: [0, 'Work experience cannot be negative'],
@@ -69,21 +76,121 @@ const userSchema = new mongoose.Schema({
     minimumWage: {
       type: Number,
       min: [0, 'Minimum wage cannot be negative'],
-      default: 0
+      default: 0,
+      required: [true, 'Minimum wage is required']
     },
+    
+    // Work Classification
+    workRole: {
+      type: String,
+      enum: [
+        'driver', 'construction_worker', 'domestic_helper', 'cook', 'cleaner',
+        'security_guard', 'gardener', 'electrician', 'plumber', 'carpenter',
+        'mechanic', 'delivery_person', 'farm_worker', 'factory_worker',
+        'painter', 'welder', 'mason', 'helper', 'supervisor', 'other'
+      ],
+      required: [true, 'Work role is required']
+    },
+    
     fieldOfWork: [{
       type: String,
       enum: ['agriculture', 'construction', 'manufacturing', 'services', 'transportation', 'retail', 'domestic', 'other'],
       trim: true
     }],
+    
+    // Specialization and Skills
+    speciality: {
+      type: String,
+      enum: [
+        'heavy_vehicle_driving', 'light_vehicle_driving', 'two_wheeler_driving',
+        'house_construction', 'road_construction', 'building_maintenance',
+        'cooking', 'cleaning', 'child_care', 'elderly_care',
+        'electrical_work', 'plumbing', 'carpentry', 'welding', 'painting',
+        'security', 'gardening', 'farming', 'machine_operation',
+        'computer_skills', 'language_skills', 'other'
+      ],
+      required: [true, 'Speciality is required']
+    },
+    
     extraSkills: [{
       type: String,
       trim: true
     }],
+    
+    // Performance Metrics
+    performanceRating: {
+      type: Number,
+      min: [1, 'Rating cannot be less than 1'],
+      max: [5, 'Rating cannot exceed 5'],
+      default: 3
+    },
+    
+    skillLevel: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced', 'expert'],
+      default: 'beginner'
+    },
+    
+    // Work Preferences
     availability: {
       type: String,
-      enum: ['full_time', 'part_time', 'flexible', 'seasonal'],
+      enum: ['full_time', 'part_time', 'flexible', 'seasonal', 'contract'],
       default: 'full_time'
+    },
+    
+    workingHours: {
+      type: String,
+      enum: ['day_shift', 'night_shift', 'flexible', 'rotational'],
+      default: 'day_shift'
+    },
+    
+    // Additional Information
+    hasVehicle: {
+      type: Boolean,
+      default: false
+    },
+    
+    vehicleType: {
+      type: String,
+      enum: ['two_wheeler', 'car', 'auto_rickshaw', 'truck', 'tractor', 'none'],
+      default: 'none'
+    },
+    
+    hasLicense: {
+      type: Boolean,
+      default: false
+    },
+    
+    licenseType: {
+      type: String,
+      enum: ['learner', 'permanent', 'commercial', 'none'],
+      default: 'none'
+    },
+    
+    // Work History
+    previousEmployers: [{
+      companyName: String,
+      duration: String,
+      role: String,
+      reason_for_leaving: String
+    }],
+    
+    // Physical Requirements
+    canLiftHeavyObjects: {
+      type: Boolean,
+      default: false
+    },
+    
+    hasHealthIssues: {
+      type: Boolean,
+      default: false
+    },
+    
+    // Emergency Contact
+    emergencyContact: {
+      name: String,
+      phone: String,
+      relation: String
     }
   },
   
