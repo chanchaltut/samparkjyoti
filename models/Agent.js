@@ -36,7 +36,7 @@ const agentSchema = new mongoose.Schema({
   agentId: {
     type: String,
     unique: true,
-    required: true
+    required: false // Will be auto-generated
   },
   licenseNumber: {
     type: String,
@@ -139,8 +139,13 @@ const agentSchema = new mongoose.Schema({
 // Generate unique agent ID before saving
 agentSchema.pre('save', async function(next) {
   if (!this.agentId) {
-    const count = await mongoose.model('Agent').countDocuments();
-    this.agentId = `AGT${String(count + 1).padStart(6, '0')}`;
+    try {
+      const count = await this.constructor.countDocuments();
+      this.agentId = `AGT${String(count + 1).padStart(6, '0')}`;
+    } catch (error) {
+      // Fallback to timestamp-based ID
+      this.agentId = `AGT${Date.now()}`;
+    }
   }
   next();
 });
