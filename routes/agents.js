@@ -4,59 +4,83 @@ const jwt = require('jsonwebtoken');
 const Agent = require('../models/Agent');
 const User = require('../models/User');
 const MarketPrice = require('../models/MarketPrice');
+const { 
+  validateAgentRegistration, 
+  validateAgentLogin, 
+  validateWorkerCreation, 
+  validateMarketPrice,
+  sanitizeInput 
+} = require('../middleware/validation');
 const router = express.Router();
+
+// Apply sanitization to all routes
+router.use(sanitizeInput);
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'sampark-jyoti-secret-key-2024';
 
-// Agent Registration
-router.post('/register', async (req, res) => {
+// Agent Registration (Simplified - Email & Password only)
+router.post('/register', validateAgentRegistration, async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      password,
-      phone,
-      location,
-      licenseNumber,
-      organization,
-      territory
-    } = req.body;
+    const { email, password } = req.body;
 
-    // Validate required fields
-    if (!name || !email || !password || !phone || !location || !licenseNumber || !organization || !territory) {
+    // Validate required fields (only email and password)
+    if (!email || !password) {
       return res.status(400).json({
         status: 'error',
-        message: 'All fields are required'
+        message: 'Email and password are required'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please enter a valid email address'
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Password must be at least 6 characters'
       });
     }
 
     // Check if agent already exists
-    const existingAgent = await Agent.findOne({ 
-      $or: [{ email }, { licenseNumber }] 
-    });
+    const existingAgent = await Agent.findOne({ email });
     
     if (existingAgent) {
       return res.status(400).json({
         status: 'error',
-        message: 'Agent with this email or license number already exists'
+        message: 'Agent with this email already exists'
       });
     }
+
+    // Generate default values
+    const agentName = email.split('@')[0];
+    const defaultPhone = '0000000000';
+    const defaultLocation = 'Not specified';
+    const defaultOrganization = 'Sampark Jyoti';
+    const autoLicense = 'AGT_' + Date.now();
+    const defaultTerritory = 'General';
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new agent
+    // Create new agent with auto-generated fields
     const agent = new Agent({
-      name,
+      name: agentName,
       email,
       password: hashedPassword,
-      phone,
-      location,
-      licenseNumber,
-      organization,
-      territory
+      phone: defaultPhone,
+      location: defaultLocation,
+      licenseNumber: autoLicense,
+      organization: defaultOrganization,
+      territory: defaultTerritory
     });
 
     await agent.save();
@@ -104,7 +128,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Agent Login
-router.post('/login', async (req, res) => {
+router.post('/login', validateAgentLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -235,7 +259,7 @@ router.get('/profile', authenticateAgent, async (req, res) => {
 });
 
 // Create worker profile (Agent function)
-router.post('/create-worker', authenticateAgent, async (req, res) => {
+router.post('/create-worker', authenticateAgent, validateWorkerCreation, async (req, res) => {
   try {
     if (!req.agent.permissions.canCreateWorkers) {
       return res.status(403).json({
@@ -386,7 +410,7 @@ router.get('/my-workers', authenticateAgent, async (req, res) => {
 });
 
 // Update market price (Agent function)
-router.post('/update-price', authenticateAgent, async (req, res) => {
+router.post('/update-price', authenticateAgent, validateMarketPrice, async (req, res) => {
   try {
     if (!req.agent.permissions.canUpdatePrices) {
       return res.status(403).json({
