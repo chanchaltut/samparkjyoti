@@ -80,7 +80,8 @@ router.post('/register', validateAgentRegistration, async (req, res) => {
       location: defaultLocation,
       licenseNumber: autoLicense,
       organization: defaultOrganization,
-      territory: defaultTerritory
+      territory: defaultTerritory,
+      agentId: 'AGT_' + Date.now() // Explicitly set agentId
     });
 
     await agent.save();

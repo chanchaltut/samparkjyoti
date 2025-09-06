@@ -35,8 +35,7 @@ const agentSchema = new mongoose.Schema({
   // Agent-specific fields
   agentId: {
     type: String,
-    unique: true,
-    required: false // Will be auto-generated
+    unique: true
   },
   licenseNumber: {
     type: String,
