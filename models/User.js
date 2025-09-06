@@ -245,7 +245,19 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     }
-  }]
+  }],
+  
+  // Admin/Agent tracking
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  verificationNotes: String,
+  verifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  verifiedAt: Date
 }, {
   timestamps: true
 });

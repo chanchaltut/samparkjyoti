@@ -59,6 +59,9 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/farmers', require('./routes/farmers'));
 app.use('/api/roles', require('./routes/roles'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/agents', require('./routes/agents'));
+app.use('/api/market-prices', require('./routes/marketPrices'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
