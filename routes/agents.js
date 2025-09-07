@@ -19,16 +19,26 @@ router.use(sanitizeInput);
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'sampark-jyoti-secret-key-2024';
 
-// Agent Registration (Simplified - Email & Password only)
+// Agent Registration with Location Fields
 router.post('/register', validateAgentRegistration, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { 
+      email, 
+      password, 
+      name, 
+      organization, 
+      phone, 
+      location, 
+      district, 
+      state, 
+      pincode 
+    } = req.body;
 
-    // Validate required fields (only email and password)
-    if (!email || !password) {
+    // Validate required fields
+    if (!email || !password || !name || !organization || !phone || !location || !district || !state) {
       return res.status(400).json({
         status: 'error',
-        message: 'Email and password are required'
+        message: 'Email, password, name, organization, phone, location, district, and state are required'
       });
     }
 
@@ -71,15 +81,18 @@ router.post('/register', validateAgentRegistration, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new agent with auto-generated fields
+    // Create new agent with provided fields
     const agent = new Agent({
-      name: agentName,
+      name: name || agentName,
       email,
       password: hashedPassword,
-      phone: defaultPhone,
-      location: defaultLocation,
+      phone: phone || defaultPhone,
+      location: location || defaultLocation,
+      district: district || 'Not specified',
+      state: state || 'Not specified',
+      pincode: pincode || '000000',
       licenseNumber: autoLicense,
-      organization: defaultOrganization,
+      organization: organization || defaultOrganization,
       territory: defaultTerritory,
       agentId: 'AGT_' + Date.now() // Explicitly set agentId
     });
