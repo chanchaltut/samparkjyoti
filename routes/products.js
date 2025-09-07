@@ -293,11 +293,22 @@ router.get('/:id', async (req, res) => {
 router.get('/agent/pending', authenticateAgent, async (req, res) => {
   try {
     const agentId = req.agent._id;
+    const agent = req.agent;
     
+    // Get products that need agent assignment or are assigned to this agent
     const products = await Product.find({
       $or: [
-        { assignedAgent: agentId, status: 'under_review' },
-        { status: 'pending' }
+        { assignedAgent: agentId, status: { $in: ['pending', 'under_review'] } },
+        { 
+          assignedAgent: null, 
+          status: 'pending',
+          // Location-based matching
+          $or: [
+            { location: { $regex: agent.location, $options: 'i' } },
+            { district: { $regex: agent.district, $options: 'i' } },
+            { state: { $regex: agent.state, $options: 'i' } }
+          ]
+        }
       ]
     })
     .populate('assignedAgent', 'name organization phone')
