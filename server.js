@@ -58,7 +58,11 @@ const corsOptions = {
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001'
+      'http://127.0.0.1:3001',
+      'http://localhost:3000/',
+      'http://localhost:3001/',
+      'http://127.0.0.1:3000/',
+      'http://127.0.0.1:3001/'
     ];
     
     if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
@@ -106,8 +110,14 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       users: '/api/users',
       jobs: '/api/jobs',
+      products: '/api/products',
       farmers: '/api/farmers',
-      roles: '/api/roles'
+      roles: '/api/roles',
+      agents: '/api/agents',
+      marketPrices: '/api/market-prices',
+      admin: '/api/admin',
+      singleAdmin: '/api/single-admin',
+      labour: '/api/labour'
     }
   });
 });
@@ -122,18 +132,24 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/jobs', require('./routes/jobs'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/farmers', require('./routes/farmers'));
-app.use('/api/roles', require('./routes/roles'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/agents', require('./routes/agents'));
-app.use('/api/market-prices', require('./routes/marketPrices'));
-app.use('/api/single-admin', require('./routes/singleAdmin'));
-app.use('/api/labour', require('./routes/labourSelfRegistration'));
+// API Routes with error handling
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/users', require('./routes/users'));
+  app.use('/api/jobs', require('./routes/jobs'));
+  app.use('/api/products', require('./routes/products'));
+  app.use('/api/farmers', require('./routes/farmers'));
+  app.use('/api/roles', require('./routes/roles'));
+  app.use('/api/admin', require('./routes/admin'));
+  app.use('/api/agents', require('./routes/agents'));
+  app.use('/api/market-prices', require('./routes/marketPrices'));
+  app.use('/api/single-admin', require('./routes/singleAdmin'));
+  app.use('/api/labour', require('./routes/labourSelfRegistration'));
+  console.log('✅ All API routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading API routes:', error);
+  process.exit(1);
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -156,13 +172,40 @@ app.use('*', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📱 Sampark Jyoti Backend API ready!`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`🔗 Network access: http://10.45.229.208:${PORT}/health`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/`);
+  console.log(`\n📋 Available Endpoints:`);
+  console.log(`   • Auth: /api/auth`);
+  console.log(`   • Users: /api/users`);
+  console.log(`   • Jobs: /api/jobs`);
+  console.log(`   • Products: /api/products`);
+  console.log(`   • Agents: /api/agents`);
+  console.log(`   • Market Prices: /api/market-prices`);
+  console.log(`   • Farmers: /api/farmers`);
+  console.log(`   • Labour: /api/labour`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('✅ Process terminated');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('✅ Process terminated');
+    process.exit(0);
+  });
 });
 
 module.exports = app;

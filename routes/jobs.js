@@ -191,6 +191,25 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/jobs/categories - Get job categories
+router.get('/categories', (req, res) => {
+    res.json({
+      status: 'success',
+    data: {
+      categories: [
+        { value: 'construction', label: 'Construction' },
+        { value: 'domestic', label: 'Domestic' },
+        { value: 'agriculture', label: 'Agriculture' },
+        { value: 'driver', label: 'Driver' },
+        { value: 'security', label: 'Security' },
+        { value: 'cleaning', label: 'Cleaning' },
+        { value: 'cooking', label: 'Cooking' },
+        { value: 'other', label: 'Other' }
+      ]
+    }
+  });
+});
+
 // GET /api/jobs/:id - Get specific job details
 router.get('/:id', async (req, res) => {
   try {
@@ -318,25 +337,6 @@ router.get('/agent/my-jobs', authenticateAgent, async (req, res) => {
       message: 'Failed to fetch agent jobs'
     });
   }
-});
-
-// GET /api/jobs/categories - Get job categories
-router.get('/categories', (req, res) => {
-    res.json({
-      status: 'success',
-    data: {
-      categories: [
-        { value: 'construction', label: 'Construction' },
-        { value: 'domestic', label: 'Domestic' },
-        { value: 'agriculture', label: 'Agriculture' },
-        { value: 'driver', label: 'Driver' },
-        { value: 'security', label: 'Security' },
-        { value: 'cleaning', label: 'Cleaning' },
-        { value: 'cooking', label: 'Cooking' },
-        { value: 'other', label: 'Other' }
-      ]
-    }
-  });
 });
 
 module.exports = router;
