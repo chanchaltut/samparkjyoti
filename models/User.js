@@ -62,7 +62,9 @@ const userSchema = new mongoose.Schema({
       type: Number,
       min: [18, 'Age must be at least 18'],
       max: [70, 'Age cannot exceed 70'],
-      required: [true, 'Age is required for labour profile']
+      required: function() {
+        return this.roles && this.roles.includes('labour');
+      }
     },
     workExperience: {
       type: Number,
@@ -77,7 +79,9 @@ const userSchema = new mongoose.Schema({
       type: Number,
       min: [0, 'Minimum wage cannot be negative'],
       default: 0,
-      required: [true, 'Minimum wage is required']
+      required: function() {
+        return this.roles && this.roles.includes('labour');
+      }
     },
     
     // Work Classification
@@ -89,7 +93,9 @@ const userSchema = new mongoose.Schema({
         'mechanic', 'delivery_person', 'farm_worker', 'factory_worker',
         'painter', 'welder', 'mason', 'helper', 'supervisor', 'other'
       ],
-      required: [true, 'Work role is required']
+      required: function() {
+        return this.roles && this.roles.includes('labour');
+      }
     },
     
     fieldOfWork: [{
@@ -109,7 +115,9 @@ const userSchema = new mongoose.Schema({
         'security', 'gardening', 'farming', 'machine_operation',
         'computer_skills', 'language_skills', 'other'
       ],
-      required: [true, 'Speciality is required']
+      required: function() {
+        return this.roles && this.roles.includes('labour');
+      }
     },
     
     extraSkills: [{
