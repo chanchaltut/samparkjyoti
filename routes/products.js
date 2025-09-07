@@ -5,6 +5,41 @@ const Agent = require('../models/Agent');
 const { authenticateToken } = require('../middleware/auth');
 const { sanitizeInput } = require('../middleware/validation');
 
+// Middleware to verify agent token (copied from agents.js)
+const authenticateAgent = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Access denied. No token provided.'
+      });
+    }
+
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'sampark-jyoti-secret-key-2024';
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    const agent = await Agent.findById(decoded.agentId || decoded.userId);
+    if (!agent) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid token. Agent not found.'
+      });
+    }
+
+    req.agent = agent;
+    next();
+  } catch (error) {
+    console.error('Agent auth middleware error:', error);
+    res.status(401).json({
+      status: 'error',
+      message: 'Invalid token'
+    });
+  }
+};
+
 // Apply sanitization to all routes
 router.use(sanitizeInput);
 
@@ -209,9 +244,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // GET /api/products/agent/pending - Get pending products for agent review
-router.get('/agent/pending', authenticateToken, async (req, res) => {
+router.get('/agent/pending', authenticateAgent, async (req, res) => {
   try {
-    const agentId = req.user.agentId || req.user.id;
+    const agentId = req.agent._id;
     
     const products = await Product.find({
       $or: [
@@ -237,10 +272,10 @@ router.get('/agent/pending', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/products/:id/validate - Agent validates a product
-router.put('/:id/validate', authenticateToken, async (req, res) => {
+router.put('/:id/validate', authenticateAgent, async (req, res) => {
   try {
     const { status, validationNotes } = req.body;
-    const agentId = req.user.agentId || req.user.id;
+    const agentId = req.agent._id;
 
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({
@@ -285,9 +320,9 @@ router.put('/:id/validate', authenticateToken, async (req, res) => {
 });
 
 // GET /api/products/agent/my-products - Get agent's assigned products
-router.get('/agent/my-products', authenticateToken, async (req, res) => {
+router.get('/agent/my-products', authenticateAgent, async (req, res) => {
   try {
-    const agentId = req.user.agentId || req.user.id;
+    const agentId = req.agent._id;
     
     const products = await Product.find({ assignedAgent: agentId })
       .sort({ postedAt: -1 });
