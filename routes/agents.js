@@ -405,7 +405,7 @@ router.post('/create-labour', authenticateAgent, async (req, res) => {
   }
 });
 
-// Create worker/labour profile (Enhanced version)
+// Create worker/labour profile (Simplified version)
 router.post('/create-worker', authenticateAgent, async (req, res) => {
   try {
     if (!req.agent.permissions.canCreateWorkers) {
@@ -417,52 +417,28 @@ router.post('/create-worker', authenticateAgent, async (req, res) => {
 
     const {
       name,
-      email,
       phone,
       location,
-      bio,
-      labourProfile
+      workRole,
+      speciality,
+      minimumWage
     } = req.body;
 
     // Validate required fields
-    if (!name || !email || !phone || !location) {
+    if (!name || !phone || !location || !workRole || !speciality || !minimumWage) {
       return res.status(400).json({
         status: 'error',
-        message: 'Name, email, phone, and location are required'
+        message: 'Name, phone, location, work role, speciality, and minimum wage are required'
       });
     }
 
-    // Validate labour profile required fields
-    if (labourProfile && (!labourProfile.minimumWage || !labourProfile.workRole || !labourProfile.speciality)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Minimum wage, work role, and speciality are required'
-      });
-    }
-
-    // Validate age if provided
-    if (labourProfile?.age && (labourProfile.age < 18 || labourProfile.age > 70)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Age must be between 18 and 70'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Worker with this email already exists'
-      });
-    }
-
-    // Generate a temporary password
-    const tempPassword = Math.random().toString(36).slice(-8);
+    // Generate a simple email and password
+    const email = `worker${Date.now()}@samparkjyoti.com`;
+    const tempPassword = Math.random().toString(36).slice(-6);
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(tempPassword, salt);
 
-    // Create enhanced worker profile
+    // Create simplified worker profile
     const worker = new User({
       name,
       email,
@@ -473,27 +449,26 @@ router.post('/create-worker', authenticateAgent, async (req, res) => {
       location,
       languages: ['english'],
       preferredLanguage: 'english',
-      bio,
       labourProfile: {
-        age: labourProfile?.age || 25,
-        workExperience: labourProfile?.workExperience || 0,
-        workLocation: labourProfile?.workLocation || location,
-        minimumWage: labourProfile?.minimumWage || 500,
-        workRole: labourProfile?.workRole || 'other',
-        fieldOfWork: labourProfile?.fieldOfWork || [],
-        speciality: labourProfile?.speciality || 'General Work',
-        extraSkills: labourProfile?.extraSkills || [],
-        performanceRating: labourProfile?.performanceRating || 3,
-        skillLevel: labourProfile?.skillLevel || 'beginner',
-        availability: labourProfile?.availability || 'full_time',
-        workingHours: labourProfile?.workingHours || 'day_shift',
-        hasVehicle: labourProfile?.hasVehicle || false,
-        vehicleType: labourProfile?.vehicleType || 'none',
-        hasLicense: labourProfile?.hasLicense || false,
-        licenseType: labourProfile?.licenseType || 'none',
-        canLiftHeavyObjects: labourProfile?.canLiftHeavyObjects || false,
-        hasHealthIssues: labourProfile?.hasHealthIssues || false,
-        emergencyContact: labourProfile?.emergencyContact || {},
+        age: 25, // Default age
+        workExperience: 0,
+        workLocation: location,
+        minimumWage: parseInt(minimumWage),
+        workRole,
+        fieldOfWork: ['services'], // Default field
+        speciality,
+        extraSkills: [],
+        performanceRating: 3,
+        skillLevel: 'beginner',
+        availability: 'full_time',
+        workingHours: 'day_shift',
+        hasVehicle: false,
+        vehicleType: 'none',
+        hasLicense: false,
+        licenseType: 'none',
+        canLiftHeavyObjects: false,
+        hasHealthIssues: false,
+        emergencyContact: {},
         previousEmployers: []
       },
       isVerified: false,
@@ -517,18 +492,9 @@ router.post('/create-worker', authenticateAgent, async (req, res) => {
           email: worker.email,
           phone: worker.phone,
           location: worker.location,
-          age: worker.labourProfile?.age || 25,
-          workRole: worker.labourProfile?.workRole || 'other',
-          speciality: worker.labourProfile?.speciality || 'General Work',
-          minimumWage: worker.labourProfile?.minimumWage || 500,
-          skillLevel: worker.labourProfile?.skillLevel || 'beginner',
-          performanceRating: worker.labourProfile?.performanceRating || 3,
-          workExperience: worker.labourProfile?.workExperience || 0,
-          fieldOfWork: worker.labourProfile?.fieldOfWork || [],
-          availability: worker.labourProfile?.availability || 'full_time',
-          hasVehicle: worker.labourProfile?.hasVehicle || false,
-          hasLicense: worker.labourProfile?.hasLicense || false,
-          canLiftHeavyObjects: worker.labourProfile?.canLiftHeavyObjects || false,
+          workRole: worker.labourProfile.workRole,
+          speciality: worker.labourProfile.speciality,
+          minimumWage: worker.labourProfile.minimumWage,
           tempPassword,
           createdBy: req.agent.name,
           agentId: req.agent.agentId
