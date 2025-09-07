@@ -434,7 +434,8 @@ router.post('/create-worker', authenticateAgent, async (req, res) => {
 
     // Generate a simple email and password
     const email = `worker${Date.now()}@samparkjyoti.com`;
-    const tempPassword = Math.random().toString(36).slice(-6);
+    // Generate a more user-friendly password (6 characters, mix of letters and numbers)
+    const tempPassword = Math.random().toString(36).slice(-6).toUpperCase();
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(tempPassword, salt);
 

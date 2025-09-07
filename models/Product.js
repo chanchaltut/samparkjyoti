@@ -1,248 +1,241 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  name: {
+  // Basic Product Information
+  productName: {
     type: String,
-    required: [true, 'Product name is required'],
-    trim: true,
-    maxlength: [100, 'Product name cannot exceed 100 characters']
-  },
-  description: {
-    type: String,
-    required: [true, 'Product description is required'],
-    maxlength: [1000, 'Product description cannot exceed 1000 characters']
+    required: true,
+    trim: true
   },
   category: {
     type: String,
-    required: [true, 'Product category is required'],
-    enum: [
-      'grains',
-      'vegetables',
-      'fruits',
-      'dairy',
-      'poultry',
-      'fish',
-      'spices',
-      'pulses',
-      'oilseeds',
-      'other'
-    ]
+    required: true,
+    enum: ['vegetables', 'fruits', 'grains', 'spices', 'dairy', 'poultry', 'fish', 'other']
   },
-  price: {
-    type: Number,
-    required: [true, 'Price is required'],
-    min: [0, 'Price cannot be negative']
+  subcategory: {
+    type: String,
+    trim: true
   },
+  description: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  
+  // Quantity and Pricing
   quantity: {
     type: Number,
-    required: [true, 'Quantity is required'],
-    min: [0, 'Quantity cannot be negative']
+    required: true
   },
   unit: {
     type: String,
-    required: [true, 'Unit is required'],
-    enum: ['kg', 'quintal', 'ton', 'dozen', 'piece', 'litre', 'gram']
+    required: true,
+    enum: ['kg', 'quintal', 'ton', 'piece', 'dozen', 'litre', 'bag', 'other']
   },
-  location: {
-    type: String,
-    required: [true, 'Location is required'],
-    trim: true
-  },
-  farmer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  pricePerUnit: {
+    type: Number,
     required: true
   },
-  harvestDate: {
-    type: Date,
-    required: [true, 'Harvest date is required']
+  totalPrice: {
+    type: Number,
+    required: true
+  },
+  minimumOrder: {
+    type: Number,
+    default: 1
+  },
+  availableQuantity: {
+    type: Number,
+    required: true
+  },
+  
+  // Quality and Condition
+  quality: {
+    type: String,
+    enum: ['premium', 'good', 'average', 'fair'],
+    default: 'good'
+  },
+  condition: {
+    type: String,
+    enum: ['fresh', 'dried', 'processed', 'frozen', 'canned'],
+    default: 'fresh'
+  },
+  grade: {
+    type: String,
+    trim: true
   },
   organic: {
     type: Boolean,
     default: false
   },
-  quality: {
-    type: String,
-    enum: ['grade_a', 'grade_b', 'grade_c', 'organic'],
-    default: 'grade_b'
-  },
-  images: [{
+  certification: [{
     type: String,
     trim: true
   }],
+  
+  // Location Information
+  location: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  district: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  state: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  pincode: {
+    type: String,
+    trim: true
+  },
+  farmLocation: {
+    type: String,
+    trim: true
+  },
+  
+  // Farmer Information
+  farmer: {
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    email: {
+      type: String,
+      trim: true
+    },
+    farmName: {
+      type: String,
+      trim: true
+    },
+    aadhar: {
+      type: String,
+      trim: true
+    }
+  },
+  
+  // Agent Assignment
+  assignedAgent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agent',
+    default: null
+  },
+  agentNotes: {
+    type: String,
+    trim: true
+  },
+  
+  // Status and Validation
   status: {
     type: String,
-    enum: ['available', 'sold_out', 'reserved', 'expired'],
-    default: 'available'
+    enum: ['pending', 'under_review', 'approved', 'rejected', 'sold', 'cancelled'],
+    default: 'pending'
   },
-  minOrderQuantity: {
-    type: Number,
-    min: [0, 'Minimum order quantity cannot be negative'],
-    default: 1
+  validationNotes: {
+    type: String,
+    trim: true
   },
-  maxOrderQuantity: {
-    type: Number,
-    min: [0, 'Maximum order quantity cannot be negative']
+  validatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agent',
+    default: null
+  },
+  validatedAt: {
+    type: Date,
+    default: null
+  },
+  
+  // Timestamps
+  postedAt: {
+    type: Date,
+    default: Date.now
+  },
+  expiresAt: {
+    type: Date,
+    default: function() {
+      return new Date(Date.now() + 15 * 24 * 60 * 60 * 1000); // 15 days from now
+    }
+  },
+  
+  // Additional Information
+  urgency: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'urgent'],
+    default: 'medium'
+  },
+  harvestDate: {
+    type: Date
+  },
+  storageCondition: {
+    type: String,
+    trim: true
+  },
+  packaging: {
+    type: String,
+    trim: true
   },
   deliveryOptions: [{
     type: String,
-    enum: ['pickup', 'delivery', 'both'],
-    default: 'pickup'
+    enum: ['pickup', 'delivery', 'both']
   }],
   deliveryRadius: {
     type: Number,
-    min: [0, 'Delivery radius cannot be negative'],
-    default: 0
+    default: 50 // in km
   },
+  
+  // Images
+  images: [{
+    url: String,
+    caption: String
+  }],
+  
+  // Analytics
   views: {
     type: Number,
     default: 0
   },
-  favorites: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  rating: {
-    type: Number,
-    min: [0, 'Rating cannot be negative'],
-    max: [5, 'Rating cannot exceed 5'],
-    default: 0
-  },
-  totalRatings: {
+  inquiries: {
     type: Number,
     default: 0
   },
-  isFeatured: {
-    type: Boolean,
-    default: false
-  },
-  expiryDate: {
-    type: Date
-  },
-  // Farmer-specific fields
-  farmerDetails: {
-    farmingType: {
-      type: String,
-      enum: ['organic', 'conventional', 'mixed', 'hydroponic', 'other'],
-      default: 'conventional'
-    },
-    landSize: Number,
-    landUnit: {
-      type: String,
-      enum: ['acre', 'hectare', 'sqft', 'sqm'],
-      default: 'acre'
-    },
-    specialtyYield: [String],
-    certification: [{
-      type: String,
-      enum: ['organic', 'fair_trade', 'rainforest_alliance', 'utz', 'other']
-    }]
-  },
-  // MSP and pricing details
-  pricing: {
-    minimumSupportPrice: {
-      type: Number,
-      min: [0, 'MSP cannot be negative']
-    },
-    marketPrice: {
-      type: Number,
-      min: [0, 'Market price cannot be negative']
-    },
-    isMSPGuaranteed: {
-      type: Boolean,
-      default: false
-    },
-    priceNegotiable: {
-      type: Boolean,
-      default: true
-    },
-    bulkDiscount: {
-      type: Boolean,
-      default: false
-    },
-    bulkDiscountDetails: {
-      minQuantity: Number,
-      discountPercentage: Number
-    }
-  },
-  // Crop/Vegetable specific details
-  cropDetails: {
-    variety: String,
-    season: {
-      type: String,
-      enum: ['rabi', 'kharif', 'zaid', 'all_season']
-    },
-    sowingDate: Date,
-    expectedHarvestDate: Date,
-    actualHarvestDate: Date,
-    yieldPerAcre: Number,
-    yieldUnit: {
-      type: String,
-      enum: ['kg', 'quintal', 'ton']
-    },
-    irrigationType: {
-      type: String,
-      enum: ['rainfed', 'irrigated', 'mixed']
-    },
-    pestControlMethod: {
-      type: String,
-      enum: ['chemical', 'organic', 'biological', 'integrated']
-    }
-  },
-  // Language support for vernacular
-  languageInfo: {
-    localName: String,
-    localLanguage: {
-      type: String,
-      enum: ['hindi', 'marathi', 'gujarati', 'bengali', 'telugu', 'tamil', 'kannada', 'malayalam', 'punjabi', 'urdu']
-    },
-    descriptionLocal: String
+  interestedBuyers: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
 });
 
-// Index for better query performance
-productSchema.index({ category: 1 });
-productSchema.index({ location: 1 });
-productSchema.index({ price: 1 });
-productSchema.index({ farmer: 1 });
-productSchema.index({ status: 1 });
-productSchema.index({ harvestDate: 1 });
-productSchema.index({ organic: 1 });
-productSchema.index({ createdAt: -1 });
-productSchema.index({ 'pricing.minimumSupportPrice': 1 });
-productSchema.index({ 'cropDetails.variety': 1 });
-productSchema.index({ 'farmerDetails.farmingType': 1 });
+// Index for location-based queries
+productSchema.index({ location: 1, district: 1, state: 1 });
+productSchema.index({ category: 1, status: 1 });
+productSchema.index({ assignedAgent: 1, status: 1 });
+productSchema.index({ postedAt: -1 });
+productSchema.index({ productName: 'text', description: 'text' });
 
-// Virtual for formatted price
-productSchema.virtual('formattedPrice').get(function() {
-  return `₹${this.price}/${this.unit}`;
+// Virtual for product age
+productSchema.virtual('ageInDays').get(function() {
+  return Math.floor((Date.now() - this.postedAt) / (1000 * 60 * 60 * 24));
 });
 
-// Virtual for average rating
-productSchema.virtual('averageRating').get(function() {
-  return this.totalRatings > 0 ? this.rating / this.totalRatings : 0;
+// Virtual for isExpired
+productSchema.virtual('isExpired').get(function() {
+  return new Date() > this.expiresAt;
 });
 
-// Virtual for days since harvest
-productSchema.virtual('daysSinceHarvest').get(function() {
-  const now = new Date();
-  const harvest = new Date(this.harvestDate);
-  const diffTime = Math.abs(now - harvest);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+// Virtual for isAvailable
+productSchema.virtual('isAvailable').get(function() {
+  return this.status === 'approved' && this.availableQuantity > 0 && !this.isExpired;
 });
-
-// Virtual for MSP comparison
-productSchema.virtual('mspComparison').get(function() {
-  if (!this.pricing.minimumSupportPrice) return 'No MSP';
-  if (this.price >= this.pricing.minimumSupportPrice) return 'Above MSP';
-  return 'Below MSP';
-});
-
-// Ensure virtual fields are serialized
-productSchema.set('toJSON', { virtuals: true });
-productSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Product', productSchema);
