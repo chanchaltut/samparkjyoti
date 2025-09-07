@@ -212,6 +212,52 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/products/categories - Get product categories
+router.get('/categories', (req, res) => {
+    res.json({
+      status: 'success',
+      data: {
+        categories: [
+          { value: 'grains', label: 'Grains' },
+          { value: 'vegetables', label: 'Vegetables' },
+          { value: 'fruits', label: 'Fruits' },
+          { value: 'dairy', label: 'Dairy' },
+          { value: 'poultry', label: 'Poultry' },
+          { value: 'fish', label: 'Fish' },
+          { value: 'spices', label: 'Spices' },
+          { value: 'pulses', label: 'Pulses' },
+          { value: 'oilseeds', label: 'Oilseeds' },
+          { value: 'other', label: 'Other' }
+        ]
+      }
+    });
+});
+
+// GET /api/products/trending - Get trending products
+router.get('/trending', async (req, res) => {
+  try {
+    const trendingProducts = await Product.find({ 
+      status: 'approved',
+      availableQuantity: { $gt: 0 }
+    })
+      .populate('assignedAgent', 'name organization phone')
+      .sort({ views: -1, postedAt: -1 })
+      .limit(10);
+
+    res.json({
+      status: 'success',
+      data: { products: trendingProducts }
+    });
+
+  } catch (error) {
+    console.error('Get trending products error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch trending products'
+    });
+  }
+});
+
 // GET /api/products/:id - Get specific product details
 router.get('/:id', async (req, res) => {
   try {
@@ -337,50 +383,6 @@ router.get('/agent/my-products', authenticateAgent, async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch agent products'
-    });
-  }
-});
-
-// GET /api/products/categories - Get product categories
-router.get('/categories', (req, res) => {
-  res.json({
-    status: 'success',
-    data: {
-      categories: [
-        { value: 'vegetables', label: 'Vegetables' },
-        { value: 'fruits', label: 'Fruits' },
-        { value: 'grains', label: 'Grains' },
-        { value: 'spices', label: 'Spices' },
-        { value: 'dairy', label: 'Dairy' },
-        { value: 'poultry', label: 'Poultry' },
-        { value: 'fish', label: 'Fish' },
-        { value: 'other', label: 'Other' }
-      ]
-    }
-  });
-});
-
-// GET /api/products/trending - Get trending products
-router.get('/trending', async (req, res) => {
-  try {
-    const products = await Product.find({ 
-      status: 'approved', 
-      availableQuantity: { $gt: 0 } 
-    })
-    .sort({ views: -1, inquiries: -1 })
-    .limit(10)
-    .populate('assignedAgent', 'name organization phone');
-
-    res.json({
-      status: 'success',
-      data: { products }
-    });
-
-  } catch (error) {
-    console.error('Get trending products error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch trending products'
     });
   }
 });
