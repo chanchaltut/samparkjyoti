@@ -101,6 +101,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/jobs', require('./routes/jobs'));
+app.use('/api/products', require('./routes/products'));
 app.use('/api/farmers', require('./routes/farmers'));
 app.use('/api/roles', require('./routes/roles'));
 app.use('/api/admin', require('./routes/admin'));
