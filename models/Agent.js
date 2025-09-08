@@ -33,18 +33,21 @@ const agentSchema = new mongoose.Schema({
   },
   district: {
     type: String,
-    required: [true, 'District is required'],
-    trim: true
+    required: false, // Made optional for existing agents
+    trim: true,
+    default: 'Not specified'
   },
   state: {
     type: String,
-    required: [true, 'State is required'],
-    trim: true
+    required: false, // Made optional for existing agents
+    trim: true,
+    default: 'Not specified'
   },
   pincode: {
     type: String,
-    required: [true, 'Pincode is required'],
-    trim: true
+    required: false, // Made optional for existing agents
+    trim: true,
+    default: '000000'
   },
   
   // Agent-specific fields
