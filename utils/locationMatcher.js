@@ -1,6 +1,6 @@
 const locationVariations = {
   // Odisha districts with common misspellings
-  'balangir': ['bolangir', 'balangir', 'balangiri', 'bolangiri', 'balangirh', 'bolangirh'],
+  'balangir': ['bolangir', 'balangir', 'balangiri', 'bolangiri', 'balangirh', 'bolangirh', 'bongalir', 'bongaliri', 'bongalirh', 'bongalir', 'bongalir', 'bongalir', 'bongalir', 'bongalir', 'bongalir', 'bongalir', 'bongalir', 'bongalir', 'bongalir', 'bongalir'],
   'bhubaneswar': ['bhubaneshwar', 'bhubaneshvar', 'bhubanesvar', 'bhubaneshwar', 'bhubaneshvar'],
   'cuttack': ['kattak', 'kattak', 'cuttak', 'kuttack', 'cuttak'],
   'puri': ['puri', 'puri', 'puri'],
@@ -170,8 +170,86 @@ function normalizeLocation(location) {
     return partialMatch;
   }
   
+  // If no partial match, try fuzzy matching
+  const fuzzyMatch = findFuzzyMatch(cleaned, 60); // Lower threshold for creative misspellings
+  if (fuzzyMatch) {
+    console.log(`🎯 Fuzzy match found: "${cleaned}" → "${fuzzyMatch}"`);
+    return fuzzyMatch;
+  }
+  
   // Return original if no match found
   return cleaned;
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ * @param {string} str1 - First string
+ * @param {string} str2 - Second string
+ * @returns {number} - Distance between strings
+ */
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+  const len1 = str1.length;
+  const len2 = str2.length;
+
+  for (let i = 0; i <= len2; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= len1; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= len2; i++) {
+    for (let j = 1; j <= len1; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[len2][len1];
+}
+
+/**
+ * Calculate similarity percentage between two strings
+ * @param {string} str1 - First string
+ * @param {string} str2 - Second string
+ * @returns {number} - Similarity percentage (0-100)
+ */
+function calculateSimilarity(str1, str2) {
+  const distance = levenshteinDistance(str1, str2);
+  const maxLength = Math.max(str1.length, str2.length);
+  return maxLength === 0 ? 100 : ((maxLength - distance) / maxLength) * 100;
+}
+
+/**
+ * Find fuzzy match for location names using similarity
+ * @param {string} location - The location string to match
+ * @param {number} threshold - Minimum similarity threshold (default: 70)
+ * @returns {string|null} - Matched canonical location or null
+ */
+function findFuzzyMatch(location, threshold = 70) {
+  const locationKeys = Object.keys(locationMap);
+  let bestMatch = null;
+  let bestSimilarity = 0;
+
+  for (const key of locationKeys) {
+    const similarity = calculateSimilarity(location, key);
+    
+    if (similarity >= threshold && similarity > bestSimilarity) {
+      bestMatch = key;
+      bestSimilarity = similarity;
+    }
+  }
+
+  return bestMatch ? locationMap[bestMatch] : null;
 }
 
 /**
@@ -242,6 +320,9 @@ module.exports = {
   getLocationVariations,
   findBestMatch,
   findPartialMatch,
+  findFuzzyMatch,
+  calculateSimilarity,
+  levenshteinDistance,
   locationMap,
   locationVariations
 };
