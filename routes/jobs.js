@@ -4,6 +4,7 @@ const Job = require('../models/Job');
 const Agent = require('../models/Agent');
 const { authenticateToken } = require('../middleware/auth');
 const { sanitizeInput } = require('../middleware/validation');
+const { normalizeLocation, locationsMatch, findBestMatch } = require('../utils/locationMatcher');
 
 // Middleware to verify agent token (copied from agents.js)
 const authenticateAgent = async (req, res, next) => {
@@ -247,28 +248,55 @@ router.get('/agent/pending', authenticateAgent, async (req, res) => {
     const agentId = req.agent._id;
     const agent = req.agent;
     
-    // Get jobs that need agent assignment or are assigned to this agent
-    const jobs = await Job.find({
-      $or: [
-        { assignedAgent: agentId, status: { $in: ['pending', 'under_review'] } },
-        { 
-          assignedAgent: null, 
-          status: 'pending',
-          // Location-based matching
-          $or: [
-            { location: { $regex: agent.location, $options: 'i' } },
-            { district: { $regex: agent.district, $options: 'i' } },
-            { state: { $regex: agent.state, $options: 'i' } }
-          ]
-        }
-      ]
-    })
-    .populate('assignedAgent', 'name organization phone')
-    .sort({ postedAt: -1 });
+    // Normalize agent location for smart matching
+    const agentLocation = normalizeLocation(agent.location);
+    const agentDistrict = normalizeLocation(agent.district);
+    const agentState = normalizeLocation(agent.state);
+    
+    console.log('🔍 Agent location matching:', {
+      original: { location: agent.location, district: agent.district, state: agent.state },
+      normalized: { location: agentLocation, district: agentDistrict, state: agentState }
+    });
+    
+    // Get all pending jobs first
+    const allPendingJobs = await Job.find({
+      assignedAgent: null,
+      status: 'pending'
+    }).populate('assignedAgent', 'name organization phone');
+    
+    // Filter jobs using smart location matching
+    const matchedJobs = allPendingJobs.filter(job => {
+      // Check if job location matches agent location using smart matching
+      const jobLocation = normalizeLocation(job.location);
+      const jobDistrict = normalizeLocation(job.district);
+      const jobState = normalizeLocation(job.state);
+      
+      const locationMatch = locationsMatch(agentLocation, jobLocation) || 
+                           locationsMatch(agentDistrict, jobDistrict) || 
+                           locationsMatch(agentState, jobState);
+      
+      console.log('🎯 Job matching:', {
+        jobTitle: job.title,
+        jobLocation: { location: job.location, district: job.district, state: job.state },
+        normalized: { location: jobLocation, district: jobDistrict, state: jobState },
+        matches: locationMatch
+      });
+      
+      return locationMatch;
+    });
+    
+    // Also get jobs already assigned to this agent
+    const assignedJobs = await Job.find({
+      assignedAgent: agentId,
+      status: { $in: ['pending', 'under_review'] }
+    }).populate('assignedAgent', 'name organization phone');
+    
+    // Combine matched and assigned jobs
+    const allJobs = [...assignedJobs, ...matchedJobs].sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
 
     res.json({
       status: 'success',
-      data: { jobs }
+      data: { jobs: allJobs }
     });
 
   } catch (error) {

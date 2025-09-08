@@ -4,6 +4,7 @@ const Product = require('../models/Product');
 const Agent = require('../models/Agent');
 const { authenticateToken } = require('../middleware/auth');
 const { sanitizeInput } = require('../middleware/validation');
+const { normalizeLocation, locationsMatch, findBestMatch } = require('../utils/locationMatcher');
 
 // Middleware to verify agent token (copied from agents.js)
 const authenticateAgent = async (req, res, next) => {
@@ -295,28 +296,55 @@ router.get('/agent/pending', authenticateAgent, async (req, res) => {
     const agentId = req.agent._id;
     const agent = req.agent;
     
-    // Get products that need agent assignment or are assigned to this agent
-    const products = await Product.find({
-      $or: [
-        { assignedAgent: agentId, status: { $in: ['pending', 'under_review'] } },
-        { 
-          assignedAgent: null, 
-          status: 'pending',
-          // Location-based matching
-          $or: [
-            { location: { $regex: agent.location, $options: 'i' } },
-            { district: { $regex: agent.district, $options: 'i' } },
-            { state: { $regex: agent.state, $options: 'i' } }
-          ]
-        }
-      ]
-    })
-    .populate('assignedAgent', 'name organization phone')
-    .sort({ postedAt: -1 });
+    // Normalize agent location for smart matching
+    const agentLocation = normalizeLocation(agent.location);
+    const agentDistrict = normalizeLocation(agent.district);
+    const agentState = normalizeLocation(agent.state);
+    
+    console.log('🔍 Agent product matching:', {
+      original: { location: agent.location, district: agent.district, state: agent.state },
+      normalized: { location: agentLocation, district: agentDistrict, state: agentState }
+    });
+    
+    // Get all pending products first
+    const allPendingProducts = await Product.find({
+      assignedAgent: null,
+      status: 'pending'
+    }).populate('assignedAgent', 'name organization phone');
+    
+    // Filter products using smart location matching
+    const matchedProducts = allPendingProducts.filter(product => {
+      // Check if product location matches agent location using smart matching
+      const productLocation = normalizeLocation(product.location);
+      const productDistrict = normalizeLocation(product.district);
+      const productState = normalizeLocation(product.state);
+      
+      const locationMatch = locationsMatch(agentLocation, productLocation) || 
+                           locationsMatch(agentDistrict, productDistrict) || 
+                           locationsMatch(agentState, productState);
+      
+      console.log('🎯 Product matching:', {
+        productName: product.productName,
+        productLocation: { location: product.location, district: product.district, state: product.state },
+        normalized: { location: productLocation, district: productDistrict, state: productState },
+        matches: locationMatch
+      });
+      
+      return locationMatch;
+    });
+    
+    // Also get products already assigned to this agent
+    const assignedProducts = await Product.find({
+      assignedAgent: agentId,
+      status: { $in: ['pending', 'under_review'] }
+    }).populate('assignedAgent', 'name organization phone');
+    
+    // Combine matched and assigned products
+    const allProducts = [...assignedProducts, ...matchedProducts].sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
 
     res.json({
       status: 'success',
-      data: { products }
+      data: { products: allProducts }
     });
 
   } catch (error) {

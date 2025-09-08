@@ -16,6 +16,25 @@ const router = express.Router();
 // Apply sanitization to all routes
 router.use(sanitizeInput);
 
+// GET /api/agents - Get all agents (for testing)
+router.get('/', async (req, res) => {
+  try {
+    const agents = await Agent.find({}, { password: 0 }).sort({ createdAt: -1 });
+    res.json({
+      status: 'success',
+      message: 'Agents retrieved successfully',
+      data: { agents }
+    });
+  } catch (error) {
+    console.error('Error fetching agents:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch agents',
+      error: error.message
+    });
+  }
+});
+
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'sampark-jyoti-secret-key-2024';
 
