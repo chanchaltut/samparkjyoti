@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const Agent = require('../models/Agent');
 const User = require('../models/User');
 const MarketPrice = require('../models/MarketPrice');
+const Job = require('../models/Job');
+const Product = require('../models/Product');
 const { 
   validateAgentRegistration, 
   validateAgentLogin, 
@@ -739,17 +741,49 @@ router.get('/my-prices', authenticateAgent, async (req, res) => {
 // Get agent dashboard stats
 router.get('/dashboard', authenticateAgent, async (req, res) => {
   try {
+    const agentId = req.agent._id;
+    
     const workersCount = await User.countDocuments({ 
-      createdBy: req.agent._id,
+      createdBy: agentId,
       roles: 'labour'
     });
     
     const pricesCount = await MarketPrice.countDocuments({ 
-      updatedBy: req.agent._id 
+      updatedBy: agentId 
+    });
+    
+    // Get job statistics
+    const totalJobs = await Job.countDocuments({ assignedAgent: agentId });
+    const pendingJobs = await Job.countDocuments({ 
+      assignedAgent: agentId, 
+      status: { $in: ['pending', 'under_review'] }
+    });
+    const approvedJobs = await Job.countDocuments({ 
+      assignedAgent: agentId, 
+      status: 'approved'
+    });
+    const rejectedJobs = await Job.countDocuments({ 
+      assignedAgent: agentId, 
+      status: 'rejected'
+    });
+    
+    // Get product statistics
+    const totalProducts = await Product.countDocuments({ assignedAgent: agentId });
+    const pendingProducts = await Product.countDocuments({ 
+      assignedAgent: agentId, 
+      status: { $in: ['pending', 'under_review'] }
+    });
+    const approvedProducts = await Product.countDocuments({ 
+      assignedAgent: agentId, 
+      status: 'approved'
+    });
+    const rejectedProducts = await Product.countDocuments({ 
+      assignedAgent: agentId, 
+      status: 'rejected'
     });
     
     const recentWorkers = await User.find({ 
-      createdBy: req.agent._id,
+      createdBy: agentId,
       roles: 'labour'
     })
     .select('name email location createdAt')
@@ -757,7 +791,7 @@ router.get('/dashboard', authenticateAgent, async (req, res) => {
     .limit(5);
     
     const recentPrices = await MarketPrice.find({ 
-      updatedBy: req.agent._id 
+      updatedBy: agentId
     })
     .select('productName currentPrice unit trend createdAt')
     .sort({ createdAt: -1 })
@@ -770,7 +804,17 @@ router.get('/dashboard', authenticateAgent, async (req, res) => {
           workersCreated: workersCount,
           priceUpdates: pricesCount,
           rating: req.agent.averageRating,
-          loginCount: req.agent.loginCount
+          loginCount: req.agent.loginCount,
+          // Job statistics
+          totalJobs,
+          pendingJobs,
+          approvedJobs,
+          rejectedJobs,
+          // Product statistics
+          totalProducts,
+          pendingProducts,
+          approvedProducts,
+          rejectedProducts
         },
         recentWorkers,
         recentPrices
