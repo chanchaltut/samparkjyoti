@@ -7,6 +7,83 @@ const { sanitizeInput } = require('../middleware/validation');
 // Apply sanitization to all routes
 router.use(sanitizeInput);
 
+// TEST ENDPOINT - Create vendor without authentication (for testing only)
+router.post('/test', async (req, res) => {
+  try {
+    const {
+      vendorName,
+      marketName,
+      marketLocation,
+      district,
+      state,
+      pincode,
+      contactPerson,
+      phone,
+      email,
+      address,
+      tradeProducts,
+      tradeCategories,
+      businessType,
+      licenseNumber,
+      gstNumber,
+      operatingDays,
+      operatingHours,
+      description,
+      specializations,
+      paymentMethods
+    } = req.body;
+
+    // Validate required fields
+    if (!vendorName || !marketName || !marketLocation || !district || !state || 
+        !contactPerson || !phone) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Missing required fields'
+      });
+    }
+
+    // Create vendor
+    const vendor = new Vendor({
+      vendorName,
+      marketName,
+      marketLocation,
+      district,
+      state,
+      pincode,
+      contactPerson,
+      phone,
+      email,
+      address,
+      tradeProducts: tradeProducts || [],
+      tradeCategories: tradeCategories || [],
+      businessType: businessType || 'both',
+      licenseNumber,
+      gstNumber,
+      operatingDays: operatingDays || [],
+      operatingHours: operatingHours || { start: '06:00', end: '18:00' },
+      description,
+      specializations: specializations || [],
+      paymentMethods: paymentMethods || ['cash'],
+      createdBy: 'test-user' // Test user ID
+    });
+
+    await vendor.save();
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Test vendor created successfully',
+      data: { vendor }
+    });
+  } catch (error) {
+    console.error('Create test vendor error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to create test vendor',
+      error: error.message
+    });
+  }
+});
+
 // GET /api/vendors - Get all vendors (public endpoint for farmers)
 router.get('/', async (req, res) => {
   try {

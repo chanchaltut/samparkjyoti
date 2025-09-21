@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sampark-jyoti-secret-key-2024';
 
-// Middleware to verify JWT token
+// Middleware to verify JWT token (supports both user and agent tokens)
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
@@ -17,17 +17,42 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
     
-    if (!user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Invalid token. User not found.'
-      });
+    // Handle agent tokens (with agentId)
+    if (decoded.agentId) {
+      // For agent tokens, create a mock user object with agent data
+      req.user = {
+        id: decoded.agentId,
+        email: decoded.email,
+        roles: ['agent'],
+        primaryRole: 'agent',
+        isAgent: true,
+        permissions: decoded.permissions || {}
+      };
+      return next();
+    }
+    
+    // Handle regular user tokens (with userId)
+    if (decoded.userId) {
+      const user = await User.findById(decoded.userId).select('-password');
+      
+      if (!user) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Invalid token. User not found.'
+        });
+      }
+
+      req.user = user;
+      return next();
     }
 
-    req.user = user;
-    next();
+    // If neither agentId nor userId is present
+    return res.status(401).json({
+      status: 'error',
+      message: 'Invalid token format.'
+    });
+    
   } catch (error) {
     console.error('Auth middleware error:', error);
     res.status(401).json({
@@ -69,11 +94,12 @@ const requireAgent = (req, res, next) => {
     });
   }
 
-  // Check if user has agent role or higher
+  // Check if user has agent role or higher, or if it's an agent token
   const agentRoles = ['agent', 'admin', 'super_admin'];
-  const hasAgentRole = req.user.roles.some(role => agentRoles.includes(role));
+  const hasAgentRole = req.user.roles && req.user.roles.some(role => agentRoles.includes(role));
+  const isAgentToken = req.user.isAgent === true;
   
-  if (!hasAgentRole) {
+  if (!hasAgentRole && !isAgentToken) {
     return res.status(403).json({
       status: 'error',
       message: 'Access denied. Agent privileges required.'
