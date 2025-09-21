@@ -5,7 +5,6 @@ const Agent = require('../models/Agent');
 const User = require('../models/User');
 const MarketPrice = require('../models/MarketPrice');
 const Job = require('../models/Job');
-const Product = require('../models/Product');
 const { 
   validateAgentRegistration, 
   validateAgentLogin, 
@@ -767,20 +766,6 @@ router.get('/dashboard', authenticateAgent, async (req, res) => {
       status: 'rejected'
     });
     
-    // Get product statistics
-    const totalProducts = await Product.countDocuments({ assignedAgent: agentId });
-    const pendingProducts = await Product.countDocuments({ 
-      assignedAgent: agentId, 
-      status: { $in: ['pending', 'under_review'] }
-    });
-    const approvedProducts = await Product.countDocuments({ 
-      assignedAgent: agentId, 
-      status: 'approved'
-    });
-    const rejectedProducts = await Product.countDocuments({ 
-      assignedAgent: agentId, 
-      status: 'rejected'
-    });
     
     const recentWorkers = await User.find({ 
       createdBy: agentId,
@@ -809,12 +794,7 @@ router.get('/dashboard', authenticateAgent, async (req, res) => {
           totalJobs,
           pendingJobs,
           approvedJobs,
-          rejectedJobs,
-          // Product statistics
-          totalProducts,
-          pendingProducts,
-          approvedProducts,
-          rejectedProducts
+          rejectedJobs
         },
         recentWorkers,
         recentPrices
