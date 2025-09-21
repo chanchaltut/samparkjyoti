@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
+const { normalizeLocation, locationsMatch } = require('../utils/locationMatcher');
 const router = express.Router();
 
 // Get all users (with filtering by roles)
@@ -305,6 +306,84 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to delete user',
+      error: error.message
+    });
+  }
+});
+
+// Get farmers by location using location matcher
+router.get('/farmers/by-location', async (req, res) => {
+  try {
+    const { location, district, state } = req.query;
+    
+    if (!location && !district && !state) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please provide location, district, or state parameter'
+      });
+    }
+
+    // Get all farmers first
+    const allFarmers = await User.find({ 
+      roles: 'farmer',
+      primaryRole: 'farmer'
+    }).select('-password');
+
+    let matchedFarmers = [];
+
+    if (location) {
+      // Use location matcher to find farmers in the same location
+      const normalizedLocation = normalizeLocation(location);
+      
+      matchedFarmers = allFarmers.filter(farmer => {
+        const farmerLocation = normalizeLocation(farmer.location);
+        return locationsMatch(normalizedLocation, farmerLocation);
+      });
+    } else if (district) {
+      // Match by district
+      const normalizedDistrict = normalizeLocation(district);
+      
+      matchedFarmers = allFarmers.filter(farmer => {
+        const farmerLocation = normalizeLocation(farmer.location);
+        return farmerLocation.includes(normalizedDistrict) || 
+               normalizedDistrict.includes(farmerLocation);
+      });
+    } else if (state) {
+      // Match by state
+      const normalizedState = normalizeLocation(state);
+      
+      matchedFarmers = allFarmers.filter(farmer => {
+        const farmerLocation = normalizeLocation(farmer.location);
+        return farmerLocation.includes(normalizedState) || 
+               normalizedState.includes(farmerLocation);
+      });
+    }
+
+    // Get unique districts from matched farmers
+    const districts = [...new Set(matchedFarmers.map(farmer => {
+      const parts = farmer.location.split(',').map(p => p.trim());
+      return parts[parts.length - 2] || parts[parts.length - 1]; // Get district part
+    }))];
+
+    res.json({
+      status: 'success',
+      data: {
+        farmers: matchedFarmers,
+        districts: districts,
+        totalFarmers: matchedFarmers.length,
+        searchCriteria: {
+          location: location || null,
+          district: district || null,
+          state: state || null
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get farmers by location error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to get farmers by location',
       error: error.message
     });
   }
