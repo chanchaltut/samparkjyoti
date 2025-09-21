@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Vendor = require('../models/Vendor');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAgent } = require('../middleware/auth');
 const { sanitizeInput } = require('../middleware/validation');
 
 // Apply sanitization to all routes
@@ -117,8 +117,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/vendors - Create new vendor (admin only)
-router.post('/', authenticateToken, async (req, res) => {
+// POST /api/vendors - Create new vendor (agent and admin only)
+router.post('/', authenticateToken, requireAgent, async (req, res) => {
   try {
     const {
       vendorName,
@@ -149,14 +149,6 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({
         status: 'error',
         message: 'Missing required fields'
-      });
-    }
-
-    // Check if user is admin
-    if (!req.user.isAdmin) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Access denied. Admin privileges required.'
       });
     }
 
@@ -203,16 +195,9 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/vendors/:id - Update vendor (admin only)
-router.put('/:id', authenticateToken, async (req, res) => {
+// PUT /api/vendors/:id - Update vendor (agent and admin only)
+router.put('/:id', authenticateToken, requireAgent, async (req, res) => {
   try {
-    // Check if user is admin
-    if (!req.user.isAdmin) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Access denied. Admin privileges required.'
-      });
-    }
 
     const vendor = await Vendor.findByIdAndUpdate(
       req.params.id,
@@ -243,16 +228,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/vendors/:id/verify - Verify vendor (admin only)
-router.put('/:id/verify', authenticateToken, async (req, res) => {
+// PUT /api/vendors/:id/verify - Verify vendor (agent and admin only)
+router.put('/:id/verify', authenticateToken, requireAgent, async (req, res) => {
   try {
-    // Check if user is admin
-    if (!req.user.isAdmin) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Access denied. Admin privileges required.'
-      });
-    }
 
     const vendor = await Vendor.findByIdAndUpdate(
       req.params.id,
@@ -287,8 +265,8 @@ router.put('/:id/verify', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/vendors/:id/status - Update vendor status (admin only)
-router.put('/:id/status', authenticateToken, async (req, res) => {
+// PUT /api/vendors/:id/status - Update vendor status (agent and admin only)
+router.put('/:id/status', authenticateToken, requireAgent, async (req, res) => {
   try {
     const { status } = req.body;
 
@@ -336,16 +314,9 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/vendors/:id - Delete vendor (admin only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+// DELETE /api/vendors/:id - Delete vendor (agent and admin only)
+router.delete('/:id', authenticateToken, requireAgent, async (req, res) => {
   try {
-    // Check if user is admin
-    if (!req.user.isAdmin) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Access denied. Admin privileges required.'
-      });
-    }
 
     const vendor = await Vendor.findByIdAndDelete(req.params.id);
 
