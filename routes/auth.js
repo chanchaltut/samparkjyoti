@@ -177,6 +177,41 @@ router.post('/login', async (req, res) => {
 });
 
 // Get current user profile
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Access denied. No token provided.'
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      data: { user }
+    });
+
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(401).json({
+      status: 'error',
+      message: 'Invalid token'
+    });
+  }
+});
+
 router.get('/profile', async (req, res) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');

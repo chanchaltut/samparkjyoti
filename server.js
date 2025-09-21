@@ -55,6 +55,8 @@ const corsOptions = {
     const allowedOrigins = [
       'https://your-frontend-domain.com', 
       'https://samparkjyoti.onrender.com',
+      'https://sampark-jyoti-client.vercel.app',
+      'https://sampark-jyoti-client.netlify.app',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',
@@ -110,11 +112,10 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       users: '/api/users',
       jobs: '/api/jobs',
-      products: '/api/products',
-      farmers: '/api/farmers',
       roles: '/api/roles',
       agents: '/api/agents',
       marketPrices: '/api/market-prices',
+      vendors: '/api/vendors',
       admin: '/api/admin',
       singleAdmin: '/api/single-admin',
       labour: '/api/labour'
@@ -137,12 +138,11 @@ try {
   app.use('/api/auth', require('./routes/auth'));
   app.use('/api/users', require('./routes/users'));
   app.use('/api/jobs', require('./routes/jobs'));
-  app.use('/api/products', require('./routes/products'));
-  app.use('/api/farmers', require('./routes/farmers'));
   app.use('/api/roles', require('./routes/roles'));
   app.use('/api/admin', require('./routes/admin'));
   app.use('/api/agents', require('./routes/agents'));
   app.use('/api/market-prices', require('./routes/marketPrices'));
+  app.use('/api/vendors', require('./routes/vendors'));
   app.use('/api/single-admin', require('./routes/singleAdmin'));
   app.use('/api/labour', require('./routes/labourSelfRegistration'));
   console.log('✅ All API routes loaded successfully');
@@ -184,10 +184,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`   • Auth: /api/auth`);
   console.log(`   • Users: /api/users`);
   console.log(`   • Jobs: /api/jobs`);
-  console.log(`   • Products: /api/products`);
   console.log(`   • Agents: /api/agents`);
   console.log(`   • Market Prices: /api/market-prices`);
-  console.log(`   • Farmers: /api/farmers`);
+  console.log(`   • Vendors: /api/vendors`);
   console.log(`   • Labour: /api/labour`);
 });
 
