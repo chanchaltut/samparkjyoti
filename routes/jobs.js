@@ -231,6 +231,21 @@ router.get('/public/ustaads', async (req, res) => {
   }
 });
 
+// PUBLIC: GET /api/jobs/public/ustaads/:id - detail
+router.get('/public/ustaads/:id', async (req, res) => {
+  try {
+    const Ustaad = require('../models/Ustaad');
+    const doc = await Ustaad.findById(req.params.id);
+    if (!doc) {
+      return res.status(404).json({ status: 'error', message: 'Ustaad not found' });
+    }
+    res.json({ status: 'success', data: { ustaad: doc } });
+  } catch (error) {
+    console.error('Public ustaad detail error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch ustaad' });
+  }
+});
+
 // GET /api/jobs/:id - Get specific job details
 router.get('/:id', async (req, res) => {
   try {
