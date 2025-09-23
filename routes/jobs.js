@@ -211,6 +211,26 @@ router.get('/categories', (req, res) => {
   });
 });
 
+// PUBLIC: GET /api/ustaads - list ustaads for client website and app
+router.get('/public/ustaads', async (req, res) => {
+  try {
+    const { q, location, limit = 30, page = 1 } = req.query;
+    const Ustaad = require('../models/Ustaad');
+    const filter = {};
+    if (q) filter.name = { $regex: q, $options: 'i' };
+    if (location) filter.location = { $regex: location, $options: 'i' };
+    const docs = await Ustaad.find(filter)
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .sort({ createdAt: -1 });
+    const total = await Ustaad.countDocuments(filter);
+    res.json({ status: 'success', data: { ustaads: docs, total } });
+  } catch (error) {
+    console.error('Public ustaads error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch ustaads' });
+  }
+});
+
 // GET /api/jobs/:id - Get specific job details
 router.get('/:id', async (req, res) => {
   try {
