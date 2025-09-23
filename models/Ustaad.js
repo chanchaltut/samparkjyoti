@@ -10,6 +10,7 @@ const UstaadSchema = new mongoose.Schema(
     phone: { type: String, trim: true },
     rating: { type: Number, default: 0 },
     skills: [{ type: String }],
+    bio: { type: String, trim: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

@@ -20,7 +20,8 @@ router.post('/ustaads', requireAdmin, async (req, res) => {
       location,
       phone,
       rating,
-      skills
+      skills,
+      bio
     } = req.body;
 
     if (!name) {
@@ -40,6 +41,7 @@ router.post('/ustaads', requireAdmin, async (req, res) => {
       phone: phone?.trim(),
       rating: rating || 0,
       skills: skillArray,
+      bio: bio?.trim(),
       createdBy: req.user?._id || null
     });
 
@@ -68,6 +70,20 @@ router.get('/ustaads', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('List Ustaads error:', error);
     res.status(500).json({ status: 'error', message: 'Failed to fetch Ustaads', error: error.message });
+  }
+});
+
+// Get Ustaad by ID (Admin)
+router.get('/ustaads/:id', requireAdmin, async (req, res) => {
+  try {
+    const doc = await Ustaad.findById(req.params.id);
+    if (!doc) {
+      return res.status(404).json({ status: 'error', message: 'Ustaad not found' });
+    }
+    res.json({ status: 'success', data: { ustaad: doc } });
+  } catch (error) {
+    console.error('Get Ustaad error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch Ustaad', error: error.message });
   }
 });
 
