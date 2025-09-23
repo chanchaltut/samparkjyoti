@@ -200,7 +200,20 @@ router.get('/me', async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { user }
+      data: { 
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          roles: user.roles,
+          primaryRole: user.primaryRole,
+          location: user.location,
+          languages: user.languages,
+          preferredLanguage: user.preferredLanguage,
+          isAgent: user.roles && user.roles.includes('agent'),
+          profileComplete: user.profileComplete || true
+        }
+      }
     });
 
   } catch (error) {

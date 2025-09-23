@@ -2,11 +2,74 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Job = require('../models/Job');
+const Ustaad = require('../models/Ustaad');
 const { authenticateToken, requireAdmin, requireAgent } = require('../middleware/auth');
 const router = express.Router();
 
 // Apply authentication middleware to all admin routes
 router.use(authenticateToken);
+
+// Create Ustaad profile (Admin only)
+router.post('/ustaads', requireAdmin, async (req, res) => {
+  try {
+    const {
+      name,
+      speciality,
+      experience,
+      minimumWage,
+      location,
+      phone,
+      rating,
+      skills
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ status: 'error', message: 'Name is required' });
+    }
+
+    const skillArray = Array.isArray(skills)
+      ? skills
+      : (skills ? String(skills).split(',').map(s => s.trim()).filter(Boolean) : []);
+
+    const ustaad = await Ustaad.create({
+      name: name.trim(),
+      speciality: speciality?.trim(),
+      experience: experience?.trim(),
+      minimumWage,
+      location: location?.trim(),
+      phone: phone?.trim(),
+      rating: rating || 0,
+      skills: skillArray,
+      createdBy: req.user?._id || null
+    });
+
+    res.status(201).json({ status: 'success', data: { ustaad } });
+  } catch (error) {
+    console.error('Create Ustaad error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to create Ustaad', error: error.message });
+  }
+});
+
+// List Ustaads (Admin)
+router.get('/ustaads', requireAdmin, async (req, res) => {
+  try {
+    const { location, q, limit = 50, page = 1 } = req.query;
+    const filter = {};
+    if (location) filter.location = { $regex: location, $options: 'i' };
+    if (q) filter.name = { $regex: q, $options: 'i' };
+
+    const docs = await Ustaad.find(filter)
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await Ustaad.countDocuments(filter);
+    res.json({ status: 'success', data: { ustaads: docs, total } });
+  } catch (error) {
+    console.error('List Ustaads error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch Ustaads', error: error.message });
+  }
+});
 
 // Admin Dashboard Stats
 router.get('/dashboard', requireAdmin, async (req, res) => {
